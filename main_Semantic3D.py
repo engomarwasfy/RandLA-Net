@@ -24,7 +24,7 @@ class Semantic3D:
                                7: 'scanning artefacts',
                                8: 'cars'}
         self.num_classes = len(self.label_to_names)
-        self.label_values = np.sort([k for k, v in self.label_to_names.items()])
+        self.label_values = np.sort(list(self.label_to_names))
         self.label_to_idx = {l: i for i, l in enumerate(self.label_values)}
         self.ignored_labels = np.sort([0])
 
@@ -42,10 +42,10 @@ class Semantic3D:
         self.test_files = []
         cloud_names = [file_name[:-4] for file_name in os.listdir(self.original_folder) if file_name[-4:] == '.txt']
         for pc_name in cloud_names:
-            if exists(join(self.original_folder, pc_name + '.labels')):
-                self.train_files.append(join(self.sub_pc_folder, pc_name + '.ply'))
+            if exists(join(self.original_folder, f'{pc_name}.labels')):
+                self.train_files.append(join(self.sub_pc_folder, f'{pc_name}.ply'))
             else:
-                self.test_files.append(join(self.full_pc_folder, pc_name + '.ply'))
+                self.test_files.append(join(self.full_pc_folder, f'{pc_name}.ply'))
 
         self.train_files = np.sort(self.train_files)
         self.test_files = np.sort(self.test_files)
@@ -100,7 +100,7 @@ class Semantic3D:
 
         for i, file_path in enumerate(files):
             cloud_name = file_path.split('/')[-1][:-4]
-            print('Load_pc_' + str(i) + ': ' + cloud_name)
+            print(f'Load_pc_{str(i)}: {cloud_name}')
             if file_path in self.val_files:
                 cloud_split = 'validation'
             elif file_path in self.train_files:
@@ -115,11 +115,7 @@ class Semantic3D:
             # read ply with data
             data = read_ply(sub_ply_file)
             sub_colors = np.vstack((data['red'], data['green'], data['blue'])).T
-            if cloud_split == 'test':
-                sub_labels = None
-            else:
-                sub_labels = data['class']
-
+            sub_labels = None if cloud_split == 'test' else data['class']
             # Read pkl with search tree
             with open(kd_tree_file, 'rb') as f:
                 search_tree = pickle.load(f)
@@ -132,8 +128,7 @@ class Semantic3D:
         # Get validation and test re_projection indices
         print('\nPreparing reprojection indices for validation and test')
 
-        for i, file_path in enumerate(files):
-
+        for file_path in files:
             # get cloud name and split
             cloud_name = file_path.split('/')[-1][:-4]
 
@@ -181,8 +176,7 @@ class Semantic3D:
         def spatially_regular_gen():
 
             # Generator loop
-            for i in range(num_per_epoch):  # num_per_epoch
-
+            for _ in range(num_per_epoch):
                 # Choose the cloud with the lowest probability
                 cloud_idx = int(np.argmin(self.min_possibility[split]))
 
@@ -221,12 +215,11 @@ class Semantic3D:
                 self.possibility[split][cloud_idx][query_idx] += delta
                 self.min_possibility[split][cloud_idx] = float(np.min(self.possibility[split][cloud_idx]))
 
-                if True:
-                    yield (queried_pc_xyz,
-                           queried_pc_colors.astype(np.float32),
-                           queried_pc_labels,
-                           query_idx.astype(np.int32),
-                           np.array([cloud_idx], dtype=np.int32))
+                yield (queried_pc_xyz,
+                       queried_pc_colors.astype(np.float32),
+                       queried_pc_labels,
+                       query_idx.astype(np.int32),
+                       np.array([cloud_idx], dtype=np.int32))
 
         gen_func = spatially_regular_gen
         gen_types = (tf.float32, tf.float32, tf.int32, tf.int32, tf.int32)
@@ -300,8 +293,7 @@ class Semantic3D:
         noise = tf.random_normal(tf.shape(transformed_xyz), stddev=cfg.augment_noise)
         transformed_xyz = transformed_xyz + noise
         rgb = features[:, :3]
-        stacked_features = tf.concat([transformed_xyz, rgb], axis=-1)
-        return stacked_features
+        return tf.concat([transformed_xyz, rgb], axis=-1)
 
     def init_input_pipeline(self):
         print('Initiating input pipelines')

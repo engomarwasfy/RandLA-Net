@@ -30,14 +30,14 @@ class ModelTester:
 
         if restore_snap is not None:
             self.saver.restore(self.sess, restore_snap)
-            print("Model restored from " + restore_snap)
+            print(f"Model restored from {restore_snap}")
 
         # Add a softmax operation for predictions
         self.prob_logits = tf.nn.softmax(model.logits)
         self.test_probs = [np.zeros((l.data.shape[0], model.config.num_classes), dtype=np.float16)
                            for l in dataset.input_trees['test']]
 
-        self.log_out = open('log_test_' + dataset.name + '.txt', 'a')
+        self.log_out = open(f'log_test_{dataset.name}.txt', 'a')
 
     def test(self, model, dataset, num_votes=100):
 
@@ -50,9 +50,15 @@ class ModelTester:
         # Test saving path
         saving_path = time.strftime('results/Log_%Y-%m-%d_%H-%M-%S', time.gmtime())
         test_path = join('test', saving_path.split('/')[-1])
-        makedirs(test_path) if not exists(test_path) else None
-        makedirs(join(test_path, 'predictions')) if not exists(join(test_path, 'predictions')) else None
-        makedirs(join(test_path, 'probs')) if not exists(join(test_path, 'probs')) else None
+        None if exists(test_path) else makedirs(test_path)
+        None if exists(join(test_path, 'predictions')) else makedirs(
+            join(test_path, 'predictions')
+        )
+
+        None if exists(join(test_path, 'probs')) else makedirs(
+            join(test_path, 'probs')
+        )
+
 
         #####################
         # Network predictions
@@ -96,12 +102,10 @@ class ModelTester:
                     # Update last_min
                     last_min = new_min
 
-                    # Project predictions
-                    print('\nReproject Vote #{:d}'.format(int(np.floor(new_min))))
+                    print('\nReproject Vote #{:d}'.format(int(np.floor(last_min))))
                     t1 = time.time()
                     files = dataset.test_files
-                    i_test = 0
-                    for i, file_path in enumerate(files):
+                    for i_test, file_path in enumerate(files):
                         # Get file
                         points = self.load_evaluation_points(file_path)
                         points = points.astype(np.float16)
@@ -127,9 +131,7 @@ class ModelTester:
                         # Save ascii preds
                         ascii_name = join(test_path, 'predictions', dataset.ascii_files[cloud_name])
                         np.savetxt(ascii_name, preds, fmt='%d')
-                        log_string(ascii_name + 'has saved', self.log_out)
-                        i_test += 1
-
+                        log_string(f'{ascii_name}has saved', self.log_out)
                     t2 = time.time()
                     print('Done in {:.1f} s\n'.format(t2 - t1))
                     self.sess.close()

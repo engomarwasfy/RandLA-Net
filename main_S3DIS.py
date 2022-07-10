@@ -28,11 +28,11 @@ class S3DIS:
                                11: 'board',
                                12: 'clutter'}
         self.num_classes = len(self.label_to_names)
-        self.label_values = np.sort([k for k, v in self.label_to_names.items()])
+        self.label_values = np.sort(list(self.label_to_names))
         self.label_to_idx = {l: i for i, l in enumerate(self.label_values)}
         self.ignored_labels = np.array([])
 
-        self.val_split = 'Area_' + str(test_area_idx)
+        self.val_split = f'Area_{str(test_area_idx)}'
         self.all_files = glob.glob(join(self.path, 'original_ply', '*.ply'))
 
         # Initiate containers
@@ -48,14 +48,10 @@ class S3DIS:
 
     def load_sub_sampled_clouds(self, sub_grid_size):
         tree_path = join(self.path, 'input_{:.3f}'.format(sub_grid_size))
-        for i, file_path in enumerate(self.all_files):
+        for file_path in self.all_files:
             t0 = time.time()
             cloud_name = file_path.split('/')[-1][:-4]
-            if self.val_split in cloud_name:
-                cloud_split = 'validation'
-            else:
-                cloud_split = 'training'
-
+            cloud_split = 'validation' if self.val_split in cloud_name else 'training'
             # Name of the input files
             kd_tree_file = join(tree_path, '{:s}_KDTree.pkl'.format(cloud_name))
             sub_ply_file = join(tree_path, '{:s}.ply'.format(cloud_name))
@@ -79,7 +75,7 @@ class S3DIS:
         print('\nPreparing reprojected indices for testing')
 
         # Get validation and test reprojected indices
-        for i, file_path in enumerate(self.all_files):
+        for file_path in self.all_files:
             t0 = time.time()
             cloud_name = file_path.split('/')[-1][:-4]
 
@@ -108,8 +104,7 @@ class S3DIS:
 
         def spatially_regular_gen():
             # Generator loop
-            for i in range(num_per_epoch):
-
+            for _ in range(num_per_epoch):
                 # Choose the cloud with the lowest probability
                 cloud_idx = int(np.argmin(self.min_possibility[split]))
 
@@ -127,12 +122,15 @@ class S3DIS:
                 pick_point = center_point + noise.astype(center_point.dtype)
 
                 # Check if the number of points in the selected cloud is less than the predefined num_points
-                if len(points) < cfg.num_points:
-                    # Query all points within the cloud
-                    queried_idx = self.input_trees[split][cloud_idx].query(pick_point, k=len(points))[1][0]
-                else:
-                    # Query the predefined number of points
-                    queried_idx = self.input_trees[split][cloud_idx].query(pick_point, k=cfg.num_points)[1][0]
+                queried_idx = (
+                    self.input_trees[split][cloud_idx].query(
+                        pick_point, k=len(points)
+                    )[1][0]
+                    if len(points) < cfg.num_points
+                    else self.input_trees[split][cloud_idx].query(
+                        pick_point, k=cfg.num_points
+                    )[1][0]
+                )
 
                 # Shuffle index
                 queried_idx = DP.shuffle_idx(queried_idx)
@@ -153,12 +151,11 @@ class S3DIS:
                     queried_pc_xyz, queried_pc_colors, queried_idx, queried_pc_labels = \
                         DP.data_aug(queried_pc_xyz, queried_pc_colors, queried_pc_labels, queried_idx, cfg.num_points)
 
-                if True:
-                    yield (queried_pc_xyz.astype(np.float32),
-                           queried_pc_colors.astype(np.float32),
-                           queried_pc_labels,
-                           queried_idx.astype(np.int32),
-                           np.array([cloud_idx], dtype=np.int32))
+                yield (queried_pc_xyz.astype(np.float32),
+                       queried_pc_colors.astype(np.float32),
+                       queried_pc_labels,
+                       queried_idx.astype(np.int32),
+                       np.array([cloud_idx], dtype=np.int32))
 
         gen_func = spatially_regular_gen
         gen_types = (tf.float32, tf.float32, tf.int32, tf.int32, tf.int32)

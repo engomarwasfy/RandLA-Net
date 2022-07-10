@@ -22,43 +22,46 @@ output_path = '/data/semantic_kitti/dataset/sequences' + '_' + str(grid_size)
 seq_list = np.sort(os.listdir(dataset_path))
 
 for seq_id in seq_list:
-    print('sequence' + seq_id + ' start')
+    print(f'sequence{seq_id} start')
     seq_path = join(dataset_path, seq_id)
     seq_path_out = join(output_path, seq_id)
     pc_path = join(seq_path, 'velodyne')
     pc_path_out = join(seq_path_out, 'velodyne')
     KDTree_path_out = join(seq_path_out, 'KDTree')
-    os.makedirs(seq_path_out) if not exists(seq_path_out) else None
-    os.makedirs(pc_path_out) if not exists(pc_path_out) else None
-    os.makedirs(KDTree_path_out) if not exists(KDTree_path_out) else None
+    None if exists(seq_path_out) else os.makedirs(seq_path_out)
+    None if exists(pc_path_out) else os.makedirs(pc_path_out)
+    None if exists(KDTree_path_out) else os.makedirs(KDTree_path_out)
 
     if int(seq_id) < 11:
         label_path = join(seq_path, 'labels')
         label_path_out = join(seq_path_out, 'labels')
-        os.makedirs(label_path_out) if not exists(label_path_out) else None
+        None if exists(label_path_out) else os.makedirs(label_path_out)
         scan_list = np.sort(os.listdir(pc_path))
         for scan_id in scan_list:
             print(scan_id)
             points = DP.load_pc_kitti(join(pc_path, scan_id))
-            labels = DP.load_label_kitti(join(label_path, str(scan_id[:-4]) + '.label'), remap_lut)
+            labels = DP.load_label_kitti(
+                join(label_path, f'{str(scan_id[:-4])}.label'), remap_lut
+            )
+
             sub_points, sub_labels = DP.grid_sub_sampling(points, labels=labels, grid_size=grid_size)
             search_tree = KDTree(sub_points)
-            KDTree_save = join(KDTree_path_out, str(scan_id[:-4]) + '.pkl')
+            KDTree_save = join(KDTree_path_out, f'{str(scan_id[:-4])}.pkl')
             np.save(join(pc_path_out, scan_id)[:-4], sub_points)
             np.save(join(label_path_out, scan_id)[:-4], sub_labels)
             with open(KDTree_save, 'wb') as f:
                 pickle.dump(search_tree, f)
             if seq_id == '08':
                 proj_path = join(seq_path_out, 'proj')
-                os.makedirs(proj_path) if not exists(proj_path) else None
+                None if exists(proj_path) else os.makedirs(proj_path)
                 proj_inds = np.squeeze(search_tree.query(points, return_distance=False))
                 proj_inds = proj_inds.astype(np.int32)
-                proj_save = join(proj_path, str(scan_id[:-4]) + '_proj.pkl')
+                proj_save = join(proj_path, f'{str(scan_id[:-4])}_proj.pkl')
                 with open(proj_save, 'wb') as f:
                     pickle.dump([proj_inds], f)
     else:
         proj_path = join(seq_path_out, 'proj')
-        os.makedirs(proj_path) if not exists(proj_path) else None
+        None if exists(proj_path) else os.makedirs(proj_path)
         scan_list = np.sort(os.listdir(pc_path))
         for scan_id in scan_list:
             print(scan_id)
@@ -67,8 +70,8 @@ for seq_id in seq_list:
             search_tree = KDTree(sub_points)
             proj_inds = np.squeeze(search_tree.query(points, return_distance=False))
             proj_inds = proj_inds.astype(np.int32)
-            KDTree_save = join(KDTree_path_out, str(scan_id[:-4]) + '.pkl')
-            proj_save = join(proj_path, str(scan_id[:-4]) + '_proj.pkl')
+            KDTree_save = join(KDTree_path_out, f'{str(scan_id[:-4])}.pkl')
+            proj_save = join(proj_path, f'{str(scan_id[:-4])}_proj.pkl')
             np.save(join(pc_path_out, scan_id)[:-4], sub_points)
             with open(KDTree_save, 'wb') as f:
                 pickle.dump(search_tree, f)
