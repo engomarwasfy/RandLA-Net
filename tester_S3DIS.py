@@ -18,7 +18,7 @@ class ModelTester:
     def __init__(self, model, dataset, restore_snap=None):
         my_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
         self.saver = tf.train.Saver(my_vars, max_to_keep=100)
-        self.Log_file = open('log_test_' + str(dataset.val_split) + '.txt', 'a')
+        self.Log_file = open(f'log_test_{str(dataset.val_split)}.txt', 'a')
 
         # Create a session for running Ops on the Graph.
         on_cpu = False
@@ -33,7 +33,7 @@ class ModelTester:
         # Load trained model
         if restore_snap is not None:
             self.saver.restore(self.sess, restore_snap)
-            print("Model restored from " + restore_snap)
+            print(f"Model restored from {restore_snap}")
 
         self.prob_logits = tf.nn.softmax(model.logits)
 
@@ -60,8 +60,11 @@ class ModelTester:
         # Test saving path
         saving_path = time.strftime('results/Log_%Y-%m-%d_%H-%M-%S', time.gmtime())
         test_path = join('test', saving_path.split('/')[-1])
-        makedirs(test_path) if not exists(test_path) else None
-        makedirs(join(test_path, 'val_preds')) if not exists(join(test_path, 'val_preds')) else None
+        None if exists(test_path) else makedirs(test_path)
+        None if exists(join(test_path, 'val_preds')) else makedirs(
+            join(test_path, 'val_preds')
+        )
+
 
         step_id = 0
         epoch_id = 0
@@ -78,7 +81,7 @@ class ModelTester:
                 stacked_probs, stacked_labels, point_idx, cloud_idx = self.sess.run(ops, {model.is_training: False})
                 correct = np.sum(np.argmax(stacked_probs, axis=1) == stacked_labels)
                 acc = correct / float(np.prod(np.shape(stacked_labels)))
-                print('step' + str(step_id) + ' acc:' + str(acc))
+                print(f'step{str(step_id)} acc:{str(acc)}')
                 stacked_probs = np.reshape(stacked_probs, [model.config.val_batch_size, model.config.num_points,
                                                            model.config.num_classes])
 

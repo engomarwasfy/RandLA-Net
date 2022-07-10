@@ -15,6 +15,8 @@ import cpp_wrappers.cpp_subsampling.grid_subsampling as cpp_subsampling
 import nearest_neighbors.lib.python.nearest_neighbors as nearest_neighbors
 
 
+
+
 class ConfigSemanticKITTI:
     k_n = 16  # KNN
     num_layers = 4  # Number of layers
@@ -34,11 +36,14 @@ class ConfigSemanticKITTI:
     noise_init = 3.5  # noise initial parameter
     max_epoch = 100  # maximum epoch during training
     learning_rate = 1e-2  # initial learning rate
-    lr_decays = {i: 0.95 for i in range(0, 500)}  # decay rate of learning rate
+    lr_decays = {i: 0.95 for i in range(500)}
 
     train_sum_dir = 'train_log'
     saving = True
     saving_path = None
+
+
+
 
 
 class ConfigS3DIS:
@@ -59,11 +64,14 @@ class ConfigS3DIS:
     noise_init = 3.5  # noise initial parameter
     max_epoch = 100  # maximum epoch during training
     learning_rate = 1e-2  # initial learning rate
-    lr_decays = {i: 0.95 for i in range(0, 500)}  # decay rate of learning rate
+    lr_decays = {i: 0.95 for i in range(500)}
 
     train_sum_dir = 'train_log'
     saving = True
     saving_path = None
+
+
+
 
 
 class ConfigSemantic3D:
@@ -84,7 +92,7 @@ class ConfigSemantic3D:
     noise_init = 3.5  # noise initial parameter
     max_epoch = 100  # maximum epoch during training
     learning_rate = 1e-2  # initial learning rate
-    lr_decays = {i: 0.95 for i in range(0, 500)}  # decay rate of learning rate
+    lr_decays = {i: 0.95 for i in range(500)}
 
     train_sum_dir = 'train_log'
     saving = True
@@ -104,21 +112,18 @@ class DataProcessing:
     @staticmethod
     def load_pc_semantic3d(filename):
         pc_pd = pd.read_csv(filename, header=None, delim_whitespace=True, dtype=np.float16)
-        pc = pc_pd.values
-        return pc
+        return pc_pd.values
 
     @staticmethod
     def load_label_semantic3d(filename):
         label_pd = pd.read_csv(filename, header=None, delim_whitespace=True, dtype=np.uint8)
-        cloud_labels = label_pd.values
-        return cloud_labels
+        return label_pd.values
 
     @staticmethod
     def load_pc_kitti(pc_path):
         scan = np.fromfile(pc_path, dtype=np.float32)
         scan = scan.reshape((-1, 4))
-        points = scan[:, 0:3]  # get xyz
-        return points
+        return scan[:, 0:3]
 
     @staticmethod
     def load_label_kitti(label_path, remap_lut):
@@ -306,11 +311,7 @@ class Plot:
             if semins <= -1:
                 tp = [0, 0, 0]
             else:
-                if plot_colors is not None:
-                    tp = ins_colors[semins]
-                else:
-                    tp = ins_colors[id]
-
+                tp = ins_colors[semins] if plot_colors is not None else ins_colors[id]
             Y_colors[valid_ind] = tp
 
             ### bbox

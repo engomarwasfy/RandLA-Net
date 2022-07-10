@@ -34,7 +34,7 @@ class SemanticKITTI:
                                18: 'pole',
                                19: 'traffic-sign'}
         self.num_classes = len(self.label_to_names)
-        self.label_values = np.sort([k for k, v in self.label_to_names.items()])
+        self.label_values = np.sort(list(self.label_to_names))
         self.label_to_idx = {l: i for i, l in enumerate(self.label_values)}
         self.ignored_labels = np.sort([0])
 
@@ -90,11 +90,10 @@ class SemanticKITTI:
                     self.possibility[cloud_ind][selected_idx] += delta
                     self.min_possibility[cloud_ind] = np.min(self.possibility[cloud_ind])
 
-                if True:
-                    yield (selected_pc.astype(np.float32),
-                           selected_labels.astype(np.int32),
-                           selected_idx.astype(np.int32),
-                           np.array([cloud_ind], dtype=np.int32))
+                yield (selected_pc.astype(np.float32),
+                       selected_labels.astype(np.int32),
+                       selected_idx.astype(np.int32),
+                       np.array([cloud_ind], dtype=np.int32))
 
         gen_func = spatially_regular_gen
         gen_types = (tf.float32, tf.int32, tf.int32, tf.int32)
@@ -105,7 +104,7 @@ class SemanticKITTI:
     def get_data(self, file_path):
         seq_id = file_path.split('/')[-3]
         frame_id = file_path.split('/')[-1][:-4]
-        kd_tree_path = join(self.dataset_path, seq_id, 'KDTree', frame_id + '.pkl')
+        kd_tree_path = join(self.dataset_path, seq_id, 'KDTree', f'{frame_id}.pkl')
         # Read pkl with search tree
         with open(kd_tree_path, 'rb') as f:
             search_tree = pickle.load(f)
@@ -114,7 +113,7 @@ class SemanticKITTI:
         if int(seq_id) >= 11:
             labels = np.zeros(np.shape(points)[0], dtype=np.uint8)
         else:
-            label_path = join(self.dataset_path, seq_id, 'labels', frame_id + '.npy')
+            label_path = join(self.dataset_path, seq_id, 'labels', f'{frame_id}.npy')
             labels = np.squeeze(np.load(label_path))
         return points, search_tree, labels
 

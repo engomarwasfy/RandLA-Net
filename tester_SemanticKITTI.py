@@ -34,7 +34,7 @@ class ModelTester:
     def __init__(self, model, dataset, restore_snap=None):
         my_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
         self.saver = tf.train.Saver(my_vars, max_to_keep=100)
-        self.Log_file = open('log_test_' + dataset.name + '.txt', 'a')
+        self.Log_file = open(f'log_test_{dataset.name}.txt', 'a')
 
         # Create a session for running Ops on the Graph.
         on_cpu = False
@@ -49,7 +49,7 @@ class ModelTester:
         # Name of the snapshot to restore to (None if you want to start from beginning)
         if restore_snap is not None:
             self.saver.restore(self.sess, restore_snap)
-            print("Model restored from " + restore_snap)
+            print(f"Model restored from {restore_snap}")
 
         self.prob_logits = tf.nn.softmax(model.logits)
         self.test_probs = 0
@@ -63,9 +63,9 @@ class ModelTester:
                            for l in dataset.possibility]
 
         test_path = join('test', 'sequences')
-        makedirs(test_path) if not exists(test_path) else None
+        None if exists(test_path) else makedirs(test_path)
         save_path = join(test_path, dataset.test_scan_number, 'predictions')
-        makedirs(save_path) if not exists(save_path) else None
+        None if exists(save_path) else makedirs(save_path)
         test_smooth = 0.98
         epoch_ind = 0
 
@@ -77,7 +77,7 @@ class ModelTester:
                        model.inputs['cloud_inds'])
                 stacked_probs, labels, point_inds, cloud_inds = self.sess.run(ops, {model.is_training: False})
                 if self.idx % 10 == 0:
-                    print('step ' + str(self.idx))
+                    print(f'step {str(self.idx)}')
                 self.idx += 1
                 stacked_probs = np.reshape(stacked_probs, [model.config.val_batch_size,
                                                            model.config.num_points,
@@ -107,7 +107,7 @@ class ModelTester:
                         test_file_name = dataset.test_list[j]
                         frame = test_file_name.split('/')[-1][:-4]
                         proj_path = join(dataset.dataset_path, dataset.test_scan_number, 'proj')
-                        proj_file = join(proj_path, str(frame) + '_proj.pkl')
+                        proj_file = join(proj_path, f'{str(frame)}_proj.pkl')
                         if isfile(proj_file):
                             with open(proj_file, 'rb') as f:
                                 proj_inds = pickle.load(f)
@@ -116,7 +116,7 @@ class ModelTester:
                         if dataset.test_scan_number == '08':
                             label_path = join(dirname(dataset.dataset_path), 'sequences', dataset.test_scan_number,
                                               'labels')
-                            label_file = join(label_path, str(frame) + '.label')
+                            label_file = join(label_path, f'{str(frame)}.label')
                             labels = DP.load_label_kitti(label_file, remap_lut_val)
                             invalid_idx = np.where(labels == 0)[0]
                             labels_valid = np.delete(labels, invalid_idx)
@@ -130,8 +130,13 @@ class ModelTester:
                             positive_classes += np.sum(conf_matrix, axis=0)
                             true_positive_classes += np.diagonal(conf_matrix)
                         else:
-                            store_path = join(test_path, dataset.test_scan_number, 'predictions',
-                                              str(frame) + '.label')
+                            store_path = join(
+                                test_path,
+                                dataset.test_scan_number,
+                                'predictions',
+                                f'{str(frame)}.label',
+                            )
+
                             pred = pred + 1
                             pred = pred.astype(np.uint32)
                             upper_half = pred >> 16  # get upper half for instances
@@ -140,17 +145,21 @@ class ModelTester:
                             pred = (upper_half << 16) + lower_half  # reconstruct full label
                             pred = pred.astype(np.uint32)
                             pred.tofile(store_path)
-                    log_out(str(dataset.test_scan_number) + ' finished', self.Log_file)
+                    log_out(f'{str(dataset.test_scan_number)} finished', self.Log_file)
                     if dataset.test_scan_number=='08':
                         iou_list = []
-                        for n in range(0, num_classes, 1):
+                        for n in range(num_classes):
                             iou = true_positive_classes[n] / float(
                                 gt_classes[n] + positive_classes[n] - true_positive_classes[n])
                             iou_list.append(iou)
                         mean_iou = sum(iou_list) / float(num_classes)
 
-                        log_out('eval accuracy: {}'.format(val_total_correct / float(val_total_seen)), self.Log_file)
-                        log_out('mean IOU:{}'.format(mean_iou), self.Log_file)
+                        log_out(
+                            f'eval accuracy: {val_total_correct / float(val_total_seen)}',
+                            self.Log_file,
+                        )
+
+                        log_out(f'mean IOU:{mean_iou}', self.Log_file)
 
                         mean_iou = 100 * mean_iou
                         print('Mean IoU = {:.1f}%'.format(mean_iou))

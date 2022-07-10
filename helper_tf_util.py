@@ -368,12 +368,13 @@ def max_pool2d(inputs,
     with tf.variable_scope(scope) as sc:
         kernel_h, kernel_w = kernel_size
         stride_h, stride_w = stride
-        outputs = tf.nn.max_pool(inputs,
-                                 ksize=[1, kernel_h, kernel_w, 1],
-                                 strides=[1, stride_h, stride_w, 1],
-                                 padding=padding,
-                                 name=sc.name)
-        return outputs
+        return tf.nn.max_pool(
+            inputs,
+            ksize=[1, kernel_h, kernel_w, 1],
+            strides=[1, stride_h, stride_w, 1],
+            padding=padding,
+            name=sc.name,
+        )
 
 
 def avg_pool2d(inputs,
@@ -394,12 +395,13 @@ def avg_pool2d(inputs,
     with tf.variable_scope(scope) as sc:
         kernel_h, kernel_w = kernel_size
         stride_h, stride_w = stride
-        outputs = tf.nn.avg_pool(inputs,
-                                 ksize=[1, kernel_h, kernel_w, 1],
-                                 strides=[1, stride_h, stride_w, 1],
-                                 padding=padding,
-                                 name=sc.name)
-        return outputs
+        return tf.nn.avg_pool(
+            inputs,
+            ksize=[1, kernel_h, kernel_w, 1],
+            strides=[1, stride_h, stride_w, 1],
+            padding=padding,
+            name=sc.name,
+        )
 
 
 def max_pool3d(inputs,
@@ -420,12 +422,13 @@ def max_pool3d(inputs,
     with tf.variable_scope(scope) as sc:
         kernel_d, kernel_h, kernel_w = kernel_size
         stride_d, stride_h, stride_w = stride
-        outputs = tf.nn.max_pool3d(inputs,
-                                   ksize=[1, kernel_d, kernel_h, kernel_w, 1],
-                                   strides=[1, stride_d, stride_h, stride_w, 1],
-                                   padding=padding,
-                                   name=sc.name)
-        return outputs
+        return tf.nn.max_pool3d(
+            inputs,
+            ksize=[1, kernel_d, kernel_h, kernel_w, 1],
+            strides=[1, stride_d, stride_h, stride_w, 1],
+            padding=padding,
+            name=sc.name,
+        )
 
 
 def avg_pool3d(inputs,
@@ -446,12 +449,13 @@ def avg_pool3d(inputs,
     with tf.variable_scope(scope) as sc:
         kernel_d, kernel_h, kernel_w = kernel_size
         stride_d, stride_h, stride_w = stride
-        outputs = tf.nn.avg_pool3d(inputs,
-                                   ksize=[1, kernel_d, kernel_h, kernel_w, 1],
-                                   strides=[1, stride_d, stride_h, stride_w, 1],
-                                   padding=padding,
-                                   name=sc.name)
-        return outputs
+        return tf.nn.avg_pool3d(
+            inputs,
+            ksize=[1, kernel_d, kernel_h, kernel_w, 1],
+            strides=[1, stride_d, stride_h, stride_w, 1],
+            padding=padding,
+            name=sc.name,
+        )
 
 
 def batch_norm_template(inputs, is_training, scope, moments_dims, bn_decay):
@@ -568,7 +572,8 @@ def dropout(inputs,
       tensor variable
     """
     with tf.variable_scope(scope) as sc:
-        outputs = tf.cond(is_training,
-                          lambda: tf.nn.dropout(inputs, keep_prob, noise_shape),
-                          lambda: inputs)
-        return outputs
+        return tf.cond(
+            is_training,
+            lambda: tf.nn.dropout(inputs, keep_prob, noise_shape),
+            lambda: inputs,
+        )

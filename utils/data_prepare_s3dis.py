@@ -21,8 +21,8 @@ gt_class2label = {cls: i for i, cls in enumerate(gt_class)}
 sub_grid_size = 0.04
 original_pc_folder = join(dirname(dataset_path), 'original_ply')
 sub_pc_folder = join(dirname(dataset_path), 'input_{:.3f}'.format(sub_grid_size))
-os.mkdir(original_pc_folder) if not exists(original_pc_folder) else None
-os.mkdir(sub_pc_folder) if not exists(sub_pc_folder) else None
+None if exists(original_pc_folder) else os.mkdir(original_pc_folder)
+None if exists(sub_pc_folder) else os.mkdir(sub_pc_folder)
 out_format = '.ply'
 
 
@@ -45,7 +45,7 @@ def convert_pc2ply(anno_path, save_path):
         data_list.append(np.concatenate([pc, labels], 1))  # Nx7
 
     pc_label = np.concatenate(data_list, 0)
-    xyz_min = np.amin(pc_label, axis=0)[0:3]
+    xyz_min = np.amin(pc_label, axis=0)[:3]
     pc_label[:, 0:3] -= xyz_min
 
     xyz = pc_label[:, :3].astype(np.float32)
